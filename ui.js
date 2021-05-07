@@ -1,52 +1,109 @@
 "use strict";
 const React = require("react");
-const { useEffect } = require("react");
 const importJsx = require("import-jsx");
-const { Text, useInput, useApp } = require("ink");
+const { Text, useInput, useApp, Box, Newline } = require("ink");
 const TextInput = require("ink-text-input").default;
 
-const { defaultState, storeReducer } = importJsx("./StoreProvider");
+const { defaultState, storeReducer } = require("./StoreProvider");
+/**
+ * @type {React.FC<import("./Views/Keyboard").KeyboardProps>}
+ */
 const Keyboard = importJsx("./Views/Keyboard");
 const { KeyboardSelectors, KeyboardActions } = require("./Entities/Keyboard");
+const config = require("./config");
 
-const App = ({ name = "Stranger" }) => {
+/**
+ * @type {React.FC}
+ * @returns
+ */
+const App = () => {
+	/**
+	 * @type {[import("./StoreProvider").ApplicationState, import("./StoreProvider").DispatchFn]} [state, dispatch]
+	 */
 	const [state, dispatch] = React.useReducer(storeReducer, defaultState);
 	const keyboardData = KeyboardSelectors.keyboardData(state);
 	const showShiftInput = KeyboardSelectors.showShiftInput(state);
 	const inputValue = KeyboardSelectors.inputValue(state);
-
+	const outputDisplayValue = KeyboardSelectors.outputDisplayValue(state);
 	const { exit } = useApp();
+
 	useInput((input, key) => {
 		switch (input) {
-			case "h":
+			case "H":
 				dispatch(KeyboardActions.flipH());
 				break;
-			case "v":
+			case "V":
 				dispatch(KeyboardActions.flipV());
 				break;
-			case "s":
-				dispatch(KeyboardActions.shift(1));
-				// dispatch(KeyboardActions.showShiftInput(true));
-				break;
 			case "S":
-				dispatch(KeyboardActions.shift(-1));
-				// dispatch(KeyboardActions.showShiftInput(true));
+				dispatch(KeyboardActions.showShiftInput(true));
 				break;
-			case "q":
+			case "Q":
 				exit();
 				break;
 			default:
+				if (!showShiftInput) {
+					dispatch(KeyboardActions.setOutputValue({ input, key }));
+				}
 				break;
 		}
 	});
 	return (
 		<>
-			<Keyboard keyboardData={keyboardData} />
-			<Text>
-				Use <Text color="green">h, v, s, S</Text> to flip vertical, horizontal,
-				shift 1, or shift -1.
-			</Text>
-			{/* {showShiftInput && <TextInput value={inputValue} onChange={(val) => dispatch(KeyboardActions.setInputValue(val))} />} */}
+			<Keyboard
+				keyboardData={keyboardData}
+				pressed={[outputDisplayValue.slice(-1)]}
+			/>
+			{showShiftInput ? (
+				<Box width="100%" borderStyle="singleDouble">
+					<TextInput
+						value={inputValue}
+						placeholder="Shift by how many?"
+						onChange={(val) => dispatch(KeyboardActions.setShiftValue(val))}
+						onSubmit={() => {
+							dispatch(KeyboardActions.shift(inputValue));
+							dispatch(KeyboardActions.showShiftInput(false));
+							dispatch(KeyboardActions.setShiftValue(""));
+						}}
+						focus={showShiftInput}
+						showCursor
+					/>
+				</Box>
+			) : (
+				<>
+					<Box justifyContent="center" width={config.viewWidth}>
+						<Box paddingX={1}>
+							<Text color={config.textColor}>
+								<Text color={config.highlightColor}>⇧+H</Text> = Flip Horizontal
+							</Text>
+						</Box>
+						<Box paddingX={1}>
+							<Text color={config.textColor}>
+								<Text color={config.highlightColor}>⇧+V</Text> = Flip Vertical
+							</Text>
+						</Box>
+						<Box paddingX={1}>
+							<Text color={config.textColor}>
+								<Text color={config.highlightColor}>⇧+S</Text> = Shift
+							</Text>
+						</Box>
+						<Box paddingX={1}>
+							<Text color={config.textColor}>
+								<Text color={config.highlightColor}>⇧+Q</Text> = Quit
+							</Text>
+						</Box>
+					</Box>
+					<Newline />
+					<Text>Output:</Text>
+					<Box borderStyle="double" width={70} paddingX={1} height={12}>
+						{outputDisplayValue ? (
+							<Text wrap="wrap">{outputDisplayValue}█</Text>
+						) : (
+							<Text dimColor>Type something!</Text>
+						)}
+					</Box>
+				</>
+			)}
 		</>
 	);
 };
