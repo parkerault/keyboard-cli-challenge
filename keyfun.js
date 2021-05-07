@@ -10,7 +10,7 @@ const { handleCliInput } = require("./lib");
 
 const cli = meow(
 	`
-	Usage: brilliant [SEQUENCE] [INPUT]
+	Usage: keyfun [SEQUENCE] [INPUT]
 	Return a string transformed by the input sequence. If no input is provided, opens in interactive mode.
 
 	Options
@@ -18,13 +18,13 @@ const cli = meow(
 		-r --reverse: Same as sequence, but run the commands in reverse.
 
 	Examples
-	  $ brilliant --sequence=HV12 "the quick brown fox..."
+	  $ keyfun --sequence=HVS12 "the quick brown fox..."
 		feh ksa6q 4g;j3 t;7111
 
-		$ brilliant --reverse=HV12 "feh ksa6q 4g;j3 t;7111"
+		$ keyfun --reverse=HVS12 "feh ksa6q 4g;j3 t;7111"
 		the quick brown fox...
 
-		$brilliant # open in interactive mode
+		$keyfun # open in interactive mode
 `,
 	{
 		flags: {

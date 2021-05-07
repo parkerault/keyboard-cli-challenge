@@ -181,7 +181,6 @@ const parseSequence = ({ sequence, reverse }) => {
 				steps += newSequence[i];
 				i++;
 			}
-			console.log(steps.match(/^-/));
 			if (isReverse) {
 				steps =
 					steps.match("-") !== null ? steps.replace("-", "") : "-" + steps;
@@ -191,7 +190,6 @@ const parseSequence = ({ sequence, reverse }) => {
 			}
 		}
 	}
-	console.log(commands);
 	return commands;
 };
 

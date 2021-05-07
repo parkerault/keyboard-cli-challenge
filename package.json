@@ -1,8 +1,8 @@
 {
-	"name": "brilliant",
+	"name": "keyfun",
 	"version": "0.0.0",
 	"license": "MIT",
-	"bin": "brilliant.js",
+	"bin": "keyfun.js",
 	"engines": {
 		"node": ">=10"
 	},
@@ -10,7 +10,7 @@
 		"test": "xo && ava"
 	},
 	"files": [
-		"brilliant.js",
+		"keyfun.js",
 		"ui.js"
 	],
 	"dependencies": {
