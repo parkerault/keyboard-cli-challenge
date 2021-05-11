@@ -61,13 +61,15 @@ const KeyboardActions = {
  * @property {string} outputDisplayValue
  */
 
+const layout = keyboardLayout();
+
 /**
  * @type KeyboardState
  */
 const KeyboardDefaultState = {
-	layout: keyboardLayout(),
-	rowLength: 4,
-	colLength: 10,
+	layout,
+	rowLength: layout.length,
+	colLength: layout[0].length,
 	showShiftInput: false,
 	inputValue: "",
 	outputValue: "",
@@ -81,11 +83,10 @@ const KeyboardDefaultState = {
  * @returns {KeyboardState}
  */
 const KeyboardReducer = (state, action) => {
-	const { colLength, rowLength, layout: characters } = state;
 
 	switch (action.type) {
 		case "flipH": {
-			const newLayout = flipH(state);
+			const newLayout = flipH(state.layout);
 			const outputDisplayValue = mapOutputValues(
 				newLayout,
 				state.outputValue
@@ -94,7 +95,7 @@ const KeyboardReducer = (state, action) => {
 		}
 
 		case "flipV": {
-			const newCharacters = flipV(state);
+			const newCharacters = flipV(state.layout);
 			const outputDisplayValue = mapOutputValues(
 				newCharacters,
 				state.outputValue
@@ -103,7 +104,7 @@ const KeyboardReducer = (state, action) => {
 		}
 
 		case "shift": {
-			const newCharacters = shift(state, action.payload);
+			const newCharacters = shift(state.layout, action.payload);
 			const outputDisplayValue = mapOutputValues(
 				newCharacters,
 				state.outputValue

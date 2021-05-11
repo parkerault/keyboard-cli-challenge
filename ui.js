@@ -43,7 +43,7 @@ const App = () => {
 				break;
 			default:
 				if (!showShiftInput) {
-					dispatch(KeyboardActions.setOutputValue({ input, key }));
+					dispatch(KeyboardActions.setOutputValue({ input: input.toLowerCase(), key }));
 				}
 				break;
 		}

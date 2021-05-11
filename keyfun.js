@@ -6,7 +6,7 @@ const { render } = require("ink");
 const meow = require("meow");
 
 const ui = importJsx("./ui");
-const { handleCliInput } = require("./lib");
+const { handleCliInput, nonNullish } = require("./lib");
 
 const cli = meow(
 	`
@@ -40,8 +40,8 @@ const cli = meow(
 	}
 );
 
-if (cli.flags.sequence || cli.flags.reverse) {
-	if (cli.input[0]) {
+if (nonNullish(cli.flags.sequence) || nonNullish(cli.flags.reverse)) {
+	if (cli.input.length !== 0) {
 		try {
 			const output = `${handleCliInput(cli.flags, cli.input[0])}\n`;
 			process.stdout.write(output);

@@ -1,5 +1,16 @@
 /**
+ * matches null|undefined, but allows other falsey values
+ * @param {*} x
+ * @returns {boolean}
+ */
+function nonNullish(x) {
+	return x != null;
+}
+
+/**
+ * @typedef {(i:number)=>void} LoopFn
  * @param {number} x
+ * @returns {(fn:LoopFn)=>void}
  */
 function doTimes(x) {
 	return (fn) => Array.from({ length: x }).forEach((__, i) => fn(i));
@@ -25,17 +36,38 @@ function unsafeSwap(aIdx, bIdx, listA, listB = listA) {
 function trueMod(a, b) {
 	return ((a % b) + b) % b;
 }
+/**
+ * @typedef {string[][]} Layout
+ * @typedef {{rowLength:number,colLength:number,layout:Layout}} Props
+ */
 
 /**
- * @typedef {import("./Entities/Keyboard").KeyboardState} KS
- * @typedef {{rowLength:KS["rowLength"],colLength:KS["colLength"],layout:KS["layout"]}} Props
+ * @returns {Layout}
  */
+const createLayout = () => [
+	["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+	["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
+	["a", "s", "d", "f", "g", "h", "j", "k", "l", ";"],
+	["z", "x", "c", "v", "b", "n", "m", ".", ",", "/"],
+];
+
 /**
- * @param {Props} props
- * @returns {Props["layout"]}
+ * @typedef {{rowLength:number,colLength:number}} Dimensions
+ * @param {Layout} layout
+ * @returns {Dimensions}
  */
-const flipH = ({ colLength, rowLength, layout }) => {
+const getDimensions = (layout) => ({
+	rowLength: nonNullish(layout) ? layout.length : 0,
+	colLength: nonNullish(layout) && nonNullish(layout[0]) ? layout[0].length : 0,
+});
+
+/**
+ * @param {Layout} layout
+ * @returns {Layout}
+ */
+const flipH = (layout) => {
 	const newLayout = [...layout];
+	const { rowLength, colLength } = getDimensions(layout);
 	doTimes(rowLength)((rowIdx) => {
 		newLayout[rowIdx] = [...layout[rowIdx]];
 		doTimes(colLength / 2)((leftIdx) => {
@@ -47,11 +79,12 @@ const flipH = ({ colLength, rowLength, layout }) => {
 };
 
 /**
- * @param {Props} props
- * @returns {Props["layout"]}
+ * @param {Layout} layout
+ * @returns {Layout}
  */
-const flipV = ({ colLength, rowLength, layout }) => {
+const flipV = (layout) => {
 	const newCharacters = [...layout];
+	const { rowLength, colLength } = getDimensions(layout);
 	doTimes(rowLength / 2)((rowTopIdx) => {
 		const rowBottomIdx = rowLength - rowTopIdx - 1;
 		newCharacters[rowTopIdx] = [...layout[rowTopIdx]];
@@ -69,12 +102,13 @@ const flipV = ({ colLength, rowLength, layout }) => {
 };
 
 /**
- * @param {Props} props
+ * @param {Layout} layout
  * @param {string} count
- * @returns {Props["layout"]}
+ * @returns {Layout}
  */
-const shift = ({ colLength, rowLength, layout }, count) => {
+const shift = (layout, count) => {
 	const inputValue = parseInt(count);
+	const { rowLength, colLength } = getDimensions(layout);
 	const steps = trueMod(inputValue, colLength);
 	if (isNaN(steps)) return layout;
 	let newCharacters = [...layout];
@@ -87,20 +121,12 @@ const shift = ({ colLength, rowLength, layout }, count) => {
 	return newCharacters;
 };
 
-const keyboardLayout = () => [
-	["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-	["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
-	["a", "s", "d", "f", "g", "h", "j", "k", "l", ";"],
-	["z", "x", "c", "v", "b", "n", "m", ".", ",", "/"],
-];
-
 /**
- *
- * @param {string[][]} layout
+ * @param {Layout} layout
  * @param {string} input
  */
 const mapKey = (layout, input) => {
-	const newLayout = keyboardLayout();
+	const newLayout = createLayout();
 	let value = input;
 	for (let rowIdx = 0; rowIdx < newLayout.length; rowIdx++) {
 		const colIdx = newLayout[rowIdx].indexOf(input);
@@ -113,30 +139,30 @@ const mapKey = (layout, input) => {
 };
 
 /**
- * @param {{sequence:string, reverse: string}} flags
+ * @typedef {{command:("H"|"V")}} FlipCommand
+ * @typedef {{command:"S",steps:string}} ShiftCommand
+ * @typedef {(FlipCommand|ShiftCommand)} Command
+ */
+
+/**
+ * @param {{sequence?:string, reverse?: string}} flags
  * @param {string} input
  * @returns {string}
  */
 const handleCliInput = (flags, input) => {
-	const commands = parseSequence(flags);
-	let layout = keyboardLayout();
-	const rowLength = layout.length;
-	const colLength = layout[0].length;
-	commands.forEach((command) => {
-		switch (command.command) {
-			case "H":
-				layout = flipH({ colLength, rowLength, layout });
-				break;
-			case "V":
-				layout = flipV({ colLength, rowLength, layout });
-				break;
-			case "S":
-				layout = shift({ colLength, rowLength, layout }, command.steps);
-				break;
-			default:
-				break;
-		}
-	});
+	const { sequence, reverse } = flags;
+	let commandsGroup;
+	if (nonNullish(sequence) && nonNullish(reverse)) {
+		commandsGroup = [
+			parseSequence(flags.sequence),
+			parseSequence(flags.reverse, { reverse: true }),
+		];
+	} else if (nonNullish(sequence)) {
+		commandsGroup = [parseSequence(flags.sequence)];
+	} else {
+		commandsGroup = [parseSequence(flags.reverse, { reverse: true })];
+	}
+	const layout = applyCommandsGroup(commandsGroup, createLayout());
 	const result = [...input]
 		.map((character) => mapKey(layout, character))
 		.join("");
@@ -144,25 +170,22 @@ const handleCliInput = (flags, input) => {
 };
 
 /**
- * @typedef {{command:("H"|"V")}} FlipCommand
- * @typedef {{command:"S",steps:string}} ShiftCommand
- * @typedef {(FlipCommand|ShiftCommand)} Command
- * @param {{sequence?:string, reverse?: string}} flags
+ * @param {string} sequence
+ * @param {{reverse:boolean}} [opts]
  * @returns {Command[]}
  */
-const parseSequence = ({ sequence, reverse }) => {
+const parseSequence = (sequence, opts = { reverse: false }) => {
 	/**
 	 * @type {Command[]}
 	 */
 	let commands = [];
-	const isReverse = reverse !== undefined;
-	let newSequence = isReverse ? reverse : sequence;
+	const isReverse = opts.reverse;
 	const insert = isReverse
 		? Array.prototype.unshift.bind(commands)
 		: Array.prototype.push.bind(commands);
 	let i = 0;
-	while (i < newSequence.length) {
-		const value = newSequence[i];
+	while (i < sequence.length) {
+		const value = sequence[i];
 		if (value === "H") {
 			insert({ command: "H" });
 			i++;
@@ -174,16 +197,13 @@ const parseSequence = ({ sequence, reverse }) => {
 		} else if (value === "S") {
 			i++;
 			let steps = "";
-			while (
-				i < newSequence.length &&
-				newSequence[i].match(/[-|\d]/) !== null
-			) {
-				steps += newSequence[i];
+			while (i < sequence.length && nonNullish(sequence[i].match(/[-|\d]/))) {
+				steps += sequence[i];
 				i++;
 			}
 			if (isReverse) {
 				steps =
-					steps.match("-") !== null ? steps.replace("-", "") : "-" + steps;
+					nonNullish(steps.match("-")) ? steps.replace("-", "") : "-" + steps;
 			}
 			if (steps.length > 0) {
 				insert({ command: "S", steps });
@@ -193,11 +213,39 @@ const parseSequence = ({ sequence, reverse }) => {
 	return commands;
 };
 
+/**
+ * @param {Command[][]} commandsGroup
+ * @param {Layout} layout
+ * @returns {Layout}
+ */
+const applyCommandsGroup = (commandsGroup, layout) => {
+	let nextLayout = [...layout];
+	commandsGroup.forEach((commands) => {
+		commands.forEach((command) => {
+			switch (command.command) {
+				case "H":
+					nextLayout = flipH(nextLayout);
+					break;
+				case "V":
+					nextLayout = flipV(nextLayout);
+					break;
+				case "S":
+					nextLayout = shift(nextLayout, command.steps);
+					break;
+				default:
+					break;
+			}
+		});
+	});
+	return nextLayout;
+};
+
 module.exports = {
+	nonNullish,
 	flipH,
 	flipV,
 	shift,
-	keyboardLayout,
+	keyboardLayout: createLayout,
 	mapKey,
 	handleCliInput,
 };

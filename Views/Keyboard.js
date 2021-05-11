@@ -1,5 +1,5 @@
 const React = require("react");
-const { Text, Box, Spacer } = require("ink");
+const { Text, Box } = require("ink");
 const config = require("../config");
 
 /**
@@ -8,7 +8,6 @@ const config = require("../config");
  */
 const Keyboard = (props) => {
 	const { colLength, rowLength, layout: characters } = props.keyboardData;
-	const { pressed } = props;
 	const rowIdxs = Array.from({ length: rowLength }).map((_, i) => i);
 	const colIdxs = Array.from({ length: colLength }).map((_, i) => i);
 	return (
